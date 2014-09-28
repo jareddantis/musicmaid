@@ -9,13 +9,25 @@ if [[ ! -e ./mid3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
 	echo "or install the whole package (python-mutagen for Ubuntu 10.04+,"
 	echo "mid3v2 otherwise)."
 	exit 1
+elif [[ -e ./mid3v2 ]]; then
+	sanitize() { 
+		./mid3v2 "$@"
+	}
+elif [[ -e "/usr/bin/mid3v2" ]]; then
+	sanitize() {
+		mid3v2 "$@"
+	}
+elif [[ -e "/usr/bin/id3v2" ]]; then
+	sanitize() {
+		/usr/bin/id3v2
+	}
 fi
 
 if [[ $1 == "-a" ]]; then
 	printf '\033c'	
 	for f in $(ls *.mp3); do
 		echo "Sanitizing \"$f\""		
-		mid3v2 --delete-frames=POPM "$f"
+		sanitize --delete-frames=POPM "$f"
 		count=$((count+1))
 	done
 	echo -e "\nSuccessfully sanitized $count MP3 files."
@@ -25,34 +37,38 @@ elif [[ $1 == "-d" ]]; then
 	for d in $(ls -d *); do
 		echo "Going into directory $d"
 		cd "$d"
-		if [[ -d ./* ]]; then
-			for dd in $(ls -d *); do
-				echo -e "\nGoing into subdirectory $dd"
-				echo -e "-------------------------------------------\n"
-				cd "$dd"
-				for f in $(ls *.mp3); do
-					echo "Sanitizing \"$f\""		
-					mid3v2 --delete-frames=POPM "$f"
-					count=$((count+1))
+		cnt=`ls -1 *.mp3 2>/dev/null | wc -l`
+		if [ $cnt == "0" ]; then
+			if [[ -d * ]]; then
+				for dd in $(ls -d *); do
+					echo -e "\nGoing into subdirectory $dd"
+					echo -e "-------------------------------------------\n"
+					cd "$dd"
+					for f in $(ls *.mp3); do
+						echo "Sanitizing \"$f\""		
+						sanitize --delete-frames=POPM "$f"
+						count=$((count+1))
+					done
 				done
 				cd ../
-			done
+			fi
 		else
 			echo -e "-------------------------------------------\n"
 			for f in $(ls *.mp3); do
 				echo "Sanitizing \"$f\""
-				mid3v2 --delete-frames=POPM "$f"
+				sanitize --delete-frames=POPM "$f"
 				count=$((count+1))
 			done
 		fi
 		cd ../
+		echo ""
 	done
 
-	echo -e "\nSuccessfully sanitized $count MP3 files."
+	echo "Successfully sanitized $count MP3 files."
 	exit 0
 elif [[ $1 == "-f" ]]; then
 	echo "Sanitizing \"$1\""
-	mid3v2 --delete-frames=POPM $1
+	sanitize --delete-frames=POPM $1
 	echo "Done."
 elif [[ $1 == "-p" ]]; then
 	echo "Deleting mpxv1.mpd"
