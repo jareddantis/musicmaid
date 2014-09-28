@@ -3,9 +3,7 @@ count="0"
 SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 
-if [ -e ./mid3v2 ]; then
-	chmod 0755 ./mid3v2
-else
+if [[ ! -e ./mid3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
 	echo "ERROR: mid3v2 not found!"
 	echo "Put the script in the same directory as this script,"
 	echo "or install the whole package (python-mutagen for Ubuntu 10.04+,"
@@ -13,18 +11,27 @@ else
 	exit 1
 fi
 
-if [[ $1 == "-d" ]]; then
+if [[ $1 == "-a" ]]; then
+	printf '\033c'	
+	for f in $(ls *.mp3); do
+		echo "Sanitizing \"$f\""		
+		mid3v2 --delete-frames=POPM "$f"
+		count=$((count+1))
+	done
+	echo -e "\nSuccessfully sanitized $count MP3 files."
+	exit 0
+elif [[ $1 == "-d" ]]; then
 	printf '\033c'
-	echo -e "\nGoing into directory $d"
 	for d in $(ls -d *); do
+		echo "Going into directory $d"
 		cd "$d"
-		if [ -d * ]; then
+		if [[ -d ./* ]]; then
 			for dd in $(ls -d *); do
 				echo -e "\nGoing into subdirectory $dd"
 				echo -e "-------------------------------------------\n"
 				cd "$dd"
 				for f in $(ls *.mp3); do
-					echo "Sanitizing $f"		
+					echo "Sanitizing \"$f\""		
 					mid3v2 --delete-frames=POPM "$f"
 					count=$((count+1))
 				done
@@ -33,7 +40,7 @@ if [[ $1 == "-d" ]]; then
 		else
 			echo -e "-------------------------------------------\n"
 			for f in $(ls *.mp3); do
-				echo "Sanitizing $f"		
+				echo "Sanitizing \"$f\""
 				mid3v2 --delete-frames=POPM "$f"
 				count=$((count+1))
 			done
@@ -44,7 +51,7 @@ if [[ $1 == "-d" ]]; then
 	echo -e "\nSuccessfully sanitized $count MP3 files."
 	exit 0
 elif [[ $1 == "-f" ]]; then
-	echo "Sanitizing $1"
+	echo "Sanitizing \"$1\""
 	mid3v2 --delete-frames=POPM $1
 	echo "Done."
 elif [[ $1 == "-p" ]]; then
