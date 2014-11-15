@@ -5,14 +5,14 @@ A tool for preparing MP3 files for use with non-POPM Nokia music players. Possib
 
 ##Usage
 
-* `-d` - Sanitize all MP3 files in current directory."
-* `-f` - Sanitize <file>."
-* `-h` - Display this help message."
-* `-p` - Purge the music player database in your phone's directory.
+* `-a` - Sanitize all MP3 files in current directory.
+* `-r` - Sanitize all MP3 files in current directory and all subdirectories.
+* `-f` - Sanitize <file>.
+* `-h` - Display the help message.
 
 ##Requirements
 
-`nokiasanitize` requires the `mid3v2` Python script bundled above.
+`nokiasanitize` requires the `mid3v2` Python script.
 
 `mid3v2` is also available in the `mid3v2` package (Ubuntu < 10.04)
 or in the `python-mutagen` package (Ubuntu >= 10.04).

@@ -4,7 +4,7 @@ SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 echo ""
 
-if [[ ! -e ./mid3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
+if [[ ! -e /usr/bin/id3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
 	echo "ERROR: mid3v2 not installed!"
 	echo "Install the package \"python-mutagen\" for Ubuntu 10.04+,"
 	echo "\"mid3v2\" otherwise."
@@ -50,23 +50,12 @@ do_recursive() {
 	echo -e "\nSuccessfully sanitized $count MP3 files."
 }
 
-do_database() {
-	cd /media/$(echo $USER)
-	echo "Deleting mpxv1.mpd"
-	rm -f $(find . | grep -i 'mpxv1.mpd')
-	echo "Deleting harvesterdb.dat"
-	rm -f $(find . | grep -i 'harvesterdb.dat')
-	echo -e "\nNokia Music Player database purged successfully."
-}
-
 if [[ $1 == "-a" ]]; then
 	do_folder
 elif [[ $1 == "-r" ]]; then
 	do_recursive
 elif [[ $1 == "-f" ]]; then
 	do_file "$1"
-elif [[ $1 == "-p" ]]; then
-	do_database
 elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
 	echo -e "\nNokia Music Sanitizer"
 	echo "Sanitizes MP3 files for compatibility with non-POPM"
@@ -75,9 +64,7 @@ elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
 	echo -e "\nUsage:"
 	echo -e "\t -r        \t Recursively sanitize all MP3 files in current directory."
 	echo -e "\t -f <file> \t Sanitize <file>."
-	echo -e "\t -h        \t Display this help message."
-	echo -e "\t -p        \t Purge the music player database in your phone's"
-	echo -e "\t           \t directory.\n"
+	echo -e "\t -h        \t Display this help message.\n"
 fi
 
 unset -v count
