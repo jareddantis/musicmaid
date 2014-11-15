@@ -62,6 +62,7 @@ elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
 	echo "compliant music players on phones such as the E71."
 
 	echo -e "\nUsage:"
+	echo -e "\t -a        \t Sanitize all MP3 files in current directory."
 	echo -e "\t -r        \t Recursively sanitize all MP3 files in current directory."
 	echo -e "\t -f <file> \t Sanitize <file>."
 	echo -e "\t -h        \t Display this help message.\n"
