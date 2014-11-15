@@ -7,7 +7,7 @@ A tool for preparing MP3 files for use with non-POPM Nokia music players. Possib
 
 * `-a` - Sanitize all MP3 files in current directory.
 * `-r` - Sanitize all MP3 files in current directory and all subdirectories.
-* `-f` - Sanitize <file>.
+* `-f` - Sanitize specified file.
 * `-h` - Display the help message.
 
 ##Requirements
