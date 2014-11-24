@@ -19,6 +19,16 @@ elif [[ -e "/usr/bin/id3v2" ]]; then
 	}
 fi
 
+do_check_mp3() {
+	currentfolder=$(ls *.mp3 | wc -l)
+	echo $currentfolder
+}
+
+do_check_m4a() {
+	currentfolder=$(ls *.m4a | wc -l)
+	echo $currentfolder
+}
+
 do_file() {
 	friendlyname=${1##*/}
 	echo -n "Sanitizing \"$friendlyname\"... "
@@ -50,14 +60,47 @@ do_recursive() {
 	echo -e "\nSuccessfully sanitized $count MP3 files."
 }
 
+do_avconv() {
+	if [[ ! $(dpkg -l | grep -i 'libav-tools' --color=never) ]]; then
+		echo "ERROR: libav-tools not installed!"
+		echo "Install the package \"libav-tools\" first."
+		exit 1
+	fi
+}
+
+do_conv_file() {
+	filename=$(basename "$fullfile")
+	extension="${filename##*.}"
+	filename="${filename%.*}"
+	avconv -v 5 -y -i $filename.m4a -acodec libmp3lame -ac 2 -ab 192k $filename.mp3
+}
+
+do_conv_folder() {
+	if [[ $(do_check_m4a) != "" ]]; then
+		for f in $(ls *.m4a); do
+			do_conv_file "$f"
+			count=$((count+1))
+		done
+		echo -e "\nSuccessfully convertedd $count MP3 files."
+	else
+		echo "No M4A files in current folder."
+	fi
+}
+
 if [[ $1 == "-a" ]]; then
 	do_folder
 elif [[ $1 == "-r" ]]; then
 	do_recursive
 elif [[ $1 == "-f" ]]; then
 	do_file "$1"
+elif [[ $1 == "-ac" ]]; then
+	do_avconv
+	do_conv_folder
+elif [[ $1 == "-c" ]]; then
+	do_avconv
+	do_conv_file "$1"
 elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
-	echo -e "\nNokia Music Sanitizer"
+	echo -e "Nokia Music Sanitizer"
 	echo "Sanitizes MP3 files for compatibility with non-POPM"
 	echo "compliant music players on phones such as the E71."
 
@@ -65,7 +108,9 @@ elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
 	echo -e "\t -a        \t Sanitize all MP3 files in current directory."
 	echo -e "\t -r        \t Recursively sanitize all MP3 files in current directory."
 	echo -e "\t -f <file> \t Sanitize <file>."
-	echo -e "\t -h        \t Display this help message.\n"
+	echo -e "\t -h        \t Display this help message.\n\n"
+	echo -e "\t -a <file> \t Convert <file> from m4a to mp3."
+	echo -e "\t -ac       \t Convert all m4a files in folder to mp3.\n"
 fi
 
 unset -v count
