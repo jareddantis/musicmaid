@@ -4,38 +4,54 @@ SAVEIFS=$IFS
 IFS=$(echo -en "\n\b")
 echo ""
 
-if [[ ! -e /usr/bin/id3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
-	echo "ERROR: mid3v2 not installed!"
-	echo "Install the package \"python-mutagen\" for Ubuntu 10.04+,"
-	echo "\"mid3v2\" otherwise."
-	exit 1
-elif [[ -e "/usr/bin/mid3v2" ]]; then
-	sanitize() {
-		mid3v2 "$@"
-	}
-elif [[ -e "/usr/bin/id3v2" ]]; then
-	sanitize() {
-		/usr/bin/id3v2 "$@"
-	}
-fi
+# Functions for checking if needed binaries are present
+do_mutagen() {
+	if [[ ! -e /usr/bin/id3v2 ]] && [[ ! -e /usr/bin/mid3v2 ]]; then
+		echo "ERROR: mid3v2 not installed!"
+		echo -e "Install the package \"python-mutagen\" for Ubuntu 10.04+, \"mid3v2\" otherwise.\n"
+		exit 1
+	elif [[ -e "/usr/bin/mid3v2" ]]; then
+		sanitize() {
+			mid3v2 "$@"
+		}
+	elif [[ -e "/usr/bin/id3v2" ]]; then
+		sanitize() {
+			/usr/bin/id3v2 "$@"
+		}
+	fi
+}
+do_avconv() {
+	if [[ ! $(dpkg -l | grep -i 'libav-tools' --color=never) ]]; then
+		echo "ERROR: libav-tools not installed!"
+		echo "Install the package \"libav-tools\" first."
+		exit 1
+	fi
+}
+do_lame() {
+	if [[ ! $(dpkg -l | grep -i 'MP3 encoding library (frontend)' --color=never) ]]; then
+		echo "ERROR: lame not installed!"
+		echo "Install the package \"lame\" first."
+		exit 1
+	fi
+}
 
+# Functions for checking number of music files in folder
 do_check_mp3() {
 	currentfolder=$(ls *.mp3 | wc -l)
 	echo $currentfolder
 }
-
 do_check_m4a() {
 	currentfolder=$(ls *.m4a | wc -l)
 	echo $currentfolder
 }
 
+# Functions for removing Popularimeters
 do_file() {
 	friendlyname=${1##*/}
 	echo -n "Sanitizing \"$friendlyname\"... "
 	sanitize --delete-frames=POPM "$1"
 	echo -e "done."
 }
-
 do_folder() {
 	if [[ $(do_check_mp3) != "" ]]; then
 		for f in $(ls *.mp3); do
@@ -47,7 +63,6 @@ do_folder() {
 		echo "No MP3 files in current folder."
 	fi
 }
-
 do_recursive() {
 	cnt=$(find ./* | grep -i '.mp3' --color=never | wc -l)
 	for f in $(find ./* | grep -i '.mp3' --color=never); do
@@ -60,38 +75,59 @@ do_recursive() {
 	echo -e "\nSuccessfully sanitized $count MP3 files."
 }
 
-do_avconv() {
-	if [[ ! $(dpkg -l | grep -i 'libav-tools' --color=never) ]]; then
-		echo "ERROR: libav-tools not installed!"
-		echo "Install the package \"libav-tools\" first."
-		exit 1
-	fi
-}
-
+# Functions converting M4A to MP3
 do_conv_file() {
-	filename=$(basename "$fullfile")
+	filename=$(basename "$2")
 	extension="${filename##*.}"
 	filename="${filename%.*}"
-	avconv -v 5 -y -i $filename.m4a -acodec libmp3lame -ac 2 -ab 192k $filename.mp3
+	avconv -v 5 -y -i "$filename.m4a" -acodec libmp3lame -ac 2 -ab 192k "$filename.mp3"
 }
-
 do_conv_folder() {
 	if [[ $(do_check_m4a) != "" ]]; then
 		for f in $(ls *.m4a); do
 			do_conv_file "$f"
 			count=$((count+1))
 		done
-		echo -e "\nSuccessfully convertedd $count MP3 files."
+		echo -e "\nSuccessfully converted $count MP3 files."
 	else
 		echo "No M4A files in current folder."
 	fi
 }
 
+# Functions for embedding album art
+do_embed_file() {
+	echo -n "Embedding art in \"$2\"... "
+	
+	filename=$(basename "$2")
+	extension="${filename##*.}"
+	filename="${filename%.*}"
+	lame --ti "$1" "$filename.mp3" temp.mp3 > /dev/null 2>&1
+	rm -f "$filename.mp3"
+	mv temp.mp3 "$filename.mp3"
+	
+	echo -e "done."
+}
+do_embed_folder() {
+	if [[ $(do_check_mp3) != "" ]]; then
+		for f in $(ls *.mp3); do
+			do_embed_file "$1" "$f"
+			count=$((count+1))
+		done
+		echo -e "\nSuccessfully decorated $count MP3 files."
+	else
+		echo "No MP3 files in current folder."
+	fi
+}
+
+# CLI
 if [[ $1 == "-a" ]]; then
+	do_mutagen
 	do_folder
 elif [[ $1 == "-r" ]]; then
+	do_mutagen
 	do_recursive
 elif [[ $1 == "-f" ]]; then
+	do_mutagen
 	do_file "$1"
 elif [[ $1 == "-ac" ]]; then
 	do_avconv
@@ -99,21 +135,31 @@ elif [[ $1 == "-ac" ]]; then
 elif [[ $1 == "-c" ]]; then
 	do_avconv
 	do_conv_file "$1"
+elif [[ $1 == "-i" ]]; then
+	do_lame
+	do_embed_file "$2" "$3"
+elif [[ $1 == "-ia" ]]; then
+	do_lame
+	do_embed_folder "$2"
 elif [[ $1 == "-h" ]] || [[ ! $1 ]]; then
-	echo -e "Nokia Music Sanitizer"
+	echo "Nokia Music Sanitizer"
 	echo "Sanitizes MP3 files for compatibility with non-POPM"
 	echo "compliant music players on phones such as the E71."
 
 	echo -e "\nUsage:"
-	echo -e "\t -a        \t Sanitize all MP3 files in current directory."
-	echo -e "\t -r        \t Recursively sanitize all MP3 files in current directory."
-	echo -e "\t -f <file> \t Sanitize <file>."
-	echo -e "\t -h        \t Display this help message.\n\n"
-	echo -e "\t -a <file> \t Convert <file> from m4a to mp3."
-	echo -e "\t -ac       \t Convert all m4a files in folder to mp3.\n"
+	echo -e "\t -a         Sanitize all MP3 files in current directory."
+	echo -e "\t -r         Recursively sanitize all MP3 files in current directory."
+	echo -e "\t -f <file>  Sanitize <file>."
+	echo -e "\t -h         Display this help message.\n\n"
+	echo -e "\t -a <file>  Convert <file> from m4a to mp3."
+	echo -e "\t -ac        Convert all m4a files in folder to mp3."
+	echo -e "\t -i <i> <f> Embed <i> as MP3 file <f>'s album art."
+	echo -e "\t -ia <img>  Embed <img> as album art for all MP3 files in folder.\n"
 fi
 
 unset -v count
 unset -v cnt
 IFS=$SAVEIFS
+echo ""
 exit 0
+
