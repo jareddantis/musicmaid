@@ -1,0 +1,73 @@
+#!/bin/bash
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+count=0
+
+# Functions
+function do_embed() {
+	# Parameters: $1 = album art file path, $2 = MP3 file
+	echo "[*] Obtaining original metadata..."
+	title=$(id3v2 -l "$2" | grep 'TIT2' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	album=$(id3v2 -l "$2" | grep 'TALB' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	artist=$(id3v2 -l "$2" | grep 'TPE1' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	number=$(id3v2 -l "$2" | grep 'TRCK' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	year=$(id3v2 -l "$2" | grep 'TYER' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	genre=$(id3v2 -l "$2" | grep 'TCON' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+	
+	echo "[*] Re-encoding..."
+	lame --quiet --ti "$1" --tt "$title" --ta "$artist" --tl "$album" --tn $number --tg "$genre" --ty $year "$2" temp.mp3
+	rm -f "$2"
+	mv temp.mp3 "$2"
+	count=$((count+1))
+}
+function do_embed_file() {
+	echo -e "Embedding art in \"$2\"... "
+	
+	filename=$(basename "$2")
+	extension="${filename##*.}"
+	filename="${filename%.*}"
+	do_embed "$1" "$filename.mp3"
+	echo -e "Done.\n"
+}
+function do_embed_folder() {
+	if [[ $(do_check_mp3) != "" ]]; then
+		for f in $(ls *.mp3); do
+			do_embed_file "$1" "$f"
+			count=$((count+1))
+		done
+		echo "Decorated $count MP3 files."
+	else
+		echo "No MP3 files in current folder."
+	fi
+}
+function do_check_mp3() {
+	currentfolder=$(ls *.mp3 | wc -l)
+	echo $currentfolder
+}
+function do_display_help() {
+	echo "embedart 1.0 - by aureljared@GitHub"
+	echo "    Embeds album art in a file or a group of files with the same album."
+	echo "Usage: $(tput bold)embedart [options] [file(s)]$(tput sgr0)"
+	echo "Options:"
+	echo "    -r <album art file>         -  Embeds <album art file> in all MP3 files in current folder."
+	echo "    -f <album art file> <mp3>   -  Embeds <album art file> in <mp3>."
+	echo "    -h                          -  Displays this help message."
+	exit
+}
+function do_check_params() {
+	if [[ $1 == "-r" ]]; then
+		do_embed_folder "$2"
+	elif [[ $1 == "-f" ]]; then
+		do_embed_file "$2" "$3"
+	elif [[ $1 == "-h" ]]; then
+		do_display_help
+	else
+		echo -e "Invalid option: $1.\n"
+		do_display_help
+	fi
+}
+
+do_check_params "$@"
+
+IFS=$SAVEIFS
+exit 0

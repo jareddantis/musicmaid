@@ -1,21 +1,19 @@
-nokiasanitizer
+musicmaid
 ==============
 
-A tool for preparing MP3 files for use with non-POPM Nokia music players. Possibly compatible with other players too.
+This is a set of scripts for working with MP3 files.
 
-##Usage
+## What's included?
 
-* `-a` - Sanitize all MP3 files in current directory.
-* `-r` - Sanitize all MP3 files in current directory and all subdirectories.
-* `-f` - Sanitize specified file.
-* `-h` - Display the help message.
+1. `nokiasanitizer` - A script for removing Popularimeter data from MP3 files, which might cause some old Nokia music players to malfunction.
+2. `embedart` - A script for embedding album art in a file or a group of files, while preserving their original metadata.
 
-##Requirements
+## Requirements
 
 `nokiasanitize` requires the `mid3v2` Python script.
 
 `mid3v2` is also available in the `mid3v2` package (Ubuntu < 10.04)
 or in the `python-mutagen` package (Ubuntu >= 10.04).
+An alternative, `id3v2`, is available for Mac OS X through `brew install id3v2`.
 
-Of course, to run Python scripts, you would need to have Python installed
-on your computer.
+`embedart` requires the above and also the `lame` MP3 command-line encoder.
