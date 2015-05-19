@@ -15,21 +15,30 @@ function do_embed() {
 	genre=$(id3v2 -l "$2" | grep 'TCON' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
 	
 	echo "[*] Re-encoding..."
-	lame --quiet --ti "$1" --tt "$title" --ta "$artist" --tl "$album" --tn $number --tg "$genre" --ty $year "$2" temp.mp3
+	lame --quiet --ti "$1" --tt "$title" --ta "$artist" --tl "$album" --tn "$number" --tg "$genre" --ty "$year" "$2" ".temp.mp3"
 	rm -f "$2"
-	mv temp.mp3 "$2"
+	mv .temp.mp3 "$2"
 	count=$((count+1))
 }
 function do_embed_file() {
-	echo -e "Embedding art in \"$2\"... "
+	# Parameters: $1 = album art, $2 = MP3 file
+	echo -e "\nEmbedding art in \"$2\"... "
 	
-	filename=$(basename "$2")
-	extension="${filename##*.}"
-	filename="${filename%.*}"
-	do_embed "$1" "$filename.mp3"
-	echo -e "Done.\n"
+	# Check if filename contains single quote
+	if [[ $(echo "$2" | grep "'") != "" ]]; then
+		mv "$2" ".tmp.mp3"
+		do_embed "$1" '.tmp.mp3'
+		mv .tmp.mp3 "$2"
+	else
+		filename=$(basename "$2")
+		extension="${filename##*.}"
+		filename="${filename%.*}"
+		do_embed "$1" '$filename.$extension'
+	fi
+	echo -e "[*] Done.\n"
 }
 function do_embed_folder() {
+	# Parameter: $1 = album art
 	if [[ $(do_check_mp3) != "" ]]; then
 		for f in $(ls *.mp3); do
 			do_embed_file "$1" "$f"
@@ -60,6 +69,9 @@ function do_check_params() {
 	elif [[ $1 == "-f" ]]; then
 		do_embed_file "$2" "$3"
 	elif [[ $1 == "-h" ]]; then
+		do_display_help
+	elif [[ ! $1 ]]; then
+		echo -e "Missing parameters.\n"
 		do_display_help
 	else
 		echo -e "Invalid option: $1.\n"
