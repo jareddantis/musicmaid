@@ -7,12 +7,24 @@ count=0
 function do_embed() {
 	# Parameters: $1 = album art file path, $2 = MP3 file
 	echo "[*] Obtaining original metadata..."
-	title=$(id3v2 -l "$2" | grep 'TIT2' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
-	album=$(id3v2 -l "$2" | grep 'TALB' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
-	artist=$(id3v2 -l "$2" | grep 'TPE1' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
-	number=$(id3v2 -l "$2" | grep 'TRCK' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
-	year=$(id3v2 -l "$2" | grep 'TYER' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
-	genre=$(id3v2 -l "$2" | grep 'TCON' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)
+
+	if [[ $(id3v2 -l "$2" | grep 'No ID3v2 tag') != "" ]]; then
+		# Use ID3v1 tags
+		title="$(id3v2 -l "$2" | grep 'Title' | sed 's/Artist.*//g' | sed 's/Title  : //')"
+		album="$(id3v2 -l "$2" | grep 'Album' | sed 's/Year.*//g' | sed 's/Album  : //')"
+		artist="$(id3v2 -l "$2" | grep 'Artist' | sed 's/.*Artist: //')"
+		number="$(id3v2 -l "$2" | grep 'Track' | sed 's/.*Track: //')/$(ls ./*.mp3 | wc -l | sed 's/      //')"   # Track number based on # of mp3s in folder
+		year="$(id3v2 -l "$2" | grep 'Year' | sed 's/.*Year: //' | sed 's/,.*//')"
+		genre="$(id3v2 -l "$2" | grep 'Genre' | sed 's/.*Genre: //' | sed 's/ (.*//')"
+	else
+		# Use ID3v2 tags
+		title="$(id3v2 -l "$2" | grep 'TIT2' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+		album="$(id3v2 -l "$2" | grep 'TALB' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+		artist="$(id3v2 -l "$2" | grep 'TPE1' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+		number="$(id3v2 -l "$2" | grep 'TRCK' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+		year="$(id3v2 -l "$2" | grep 'TYER' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+		genre="$(id3v2 -l "$2" | grep 'TCON' | sed 's/^.*\():*\)/\1/g' | cut -f 2 -d ':' | cut -c 2-)"
+	fi
 	
 	echo "[*] Re-encoding..."
 	lame --quiet --ti "$1" --tt "$title" --ta "$artist" --tl "$album" --tn "$number" --tg "$genre" --ty "$year" "$2" ".temp.mp3"
@@ -33,9 +45,9 @@ function do_embed_file() {
 		filename=$(basename "$2")
 		extension="${filename##*.}"
 		filename="${filename%.*}"
-		do_embed "$1" '$filename.$extension'
+		do_embed "$1" "$filename.$extension"
 	fi
-	echo -e "[*] Done.\n"
+	echo -e "[*] Done."
 }
 function do_embed_folder() {
 	# Parameter: $1 = album art
